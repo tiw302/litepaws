@@ -4,7 +4,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <string>
-#include <vector>
+#include <memory>
 
 enum class PetState {
     IDLE,
@@ -14,10 +14,19 @@ enum class PetState {
     DRAGGING
 };
 
+// RAII Texture Deleter
+struct TextureDeleter {
+    void operator()(SDL_Texture* t) const { if (t) SDL_DestroyTexture(t); }
+};
+
 class Pet {
 public:
     Pet(SDL_Window* window, SDL_Renderer* renderer, const std::string& texturePath);
-    ~Pet();
+    ~Pet() = default;
+
+    // Disallow copying to prevent multiple deletions or invalid texture pointers
+    Pet(const Pet&) = delete;
+    Pet& operator=(const Pet&) = delete;
 
     void update(float dt);
     void render();
@@ -26,20 +35,15 @@ public:
 private:
     SDL_Window* window;
     SDL_Renderer* renderer;
-    SDL_Texture* texture;
+    std::unique_ptr<SDL_Texture, TextureDeleter> texture;
     
-    // Logic position (float for smooth movement)
     float x, y; 
-    
     float velocityX, velocityY;
     
-    int screenWidth, screenHeight;
     int displayIndex;
-    
     PetState state;
     float stateTimer;
     
-    // Animation
     int frame;
     float frameTimer;
     int frameCount;
