@@ -18,6 +18,12 @@ int main(int argc, char* argv[]) {
     // Hint: Don't bypass compositor (helps with transparency on X11)
     SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
 
+    // Force ARGB 32-bit visual for transparency support on X11
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+
     // 1. Platform-specific initialization
     Platform::initialize();
 
@@ -33,15 +39,15 @@ int main(int argc, char* argv[]) {
     }
 
     Config::getInstance().load("config/settings.ini");
-    const std::string texturePath = Config::getInstance().get("texture_path", "assets/pet.png");
     const int winW = Config::getInstance().getInt("width", 128);
     const int winH = Config::getInstance().getInt("height", 128);
 
+    // SDL_WINDOW_OPENGL is key here to help SDL pick a 32-bit visual on X11
     std::unique_ptr<SDL_Window, SDLDeleter> window(SDL_CreateWindow(
         "LitePaws",
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
         winW, winH,
-        SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_SKIP_TASKBAR
+        SDL_WINDOW_SHOWN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_SKIP_TASKBAR | SDL_WINDOW_OPENGL
     ));
 
     if (!window) {
@@ -49,7 +55,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Apply any additional tweaks
     Platform::applyWindowTweaks(window.get());
 
     std::unique_ptr<SDL_Renderer, SDLDeleter> renderer(SDL_CreateRenderer(
