@@ -13,8 +13,10 @@ struct SDLDeleter {
 };
 
 int main(int argc, char* argv[]) {
-    // Force X11 on Wayland systems if global positioning is required
-    // SDL_SetHint(SDL_HINT_VIDEODRIVER, "x11");
+    // Desktop pets need global positioning and 'always on top' features.
+    // These are restricted in native Wayland for security reasons.
+    // We force X11 (which runs via XWayland on Wayland sessions) to ensure compatibility.
+    setenv("SDL_VIDEODRIVER", "x11", 0); 
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) < 0) {
         std::cerr << "SDL Init Error: " << SDL_GetError() << std::endl;
