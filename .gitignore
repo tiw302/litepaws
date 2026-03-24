@@ -1,0 +1,14 @@
+# Compiled binaries
+bin/
+obj/
+
+# Debug info
+*.o
+*.d
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Config local (optional but good to have)
+*.ini.local
