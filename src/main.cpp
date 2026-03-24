@@ -13,6 +13,7 @@ struct SDLDeleter {
 };
 
 int main(int argc, char* argv[]) {
+    (void)argc; (void)argv;
     // 1. Platform-specific initialization
     Platform::initialize();
 
@@ -58,7 +59,7 @@ int main(int argc, char* argv[]) {
     
     SDL_SetRenderDrawBlendMode(renderer.get(), SDL_BLENDMODE_BLEND);
 
-    Pet pet(window.get(), renderer.get(), texturePath);
+    Pet pet(window.get(), renderer.get());
 
     bool quit = false;
     SDL_Event e;
