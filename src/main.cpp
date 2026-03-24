@@ -5,18 +5,16 @@
 #include <memory>
 #include "../include/Config.h"
 #include "../include/Pet.h"
+#include "../include/Platform.h"
 
-// Custom deleters for RAII
 struct SDLDeleter {
     void operator()(SDL_Window* w) const { if (w) SDL_DestroyWindow(w); }
     void operator()(SDL_Renderer* r) const { if (r) SDL_DestroyRenderer(r); }
 };
 
 int main(int argc, char* argv[]) {
-    // Desktop pets need global positioning and 'always on top' features.
-    // These are restricted in native Wayland for security reasons.
-    // We force X11 (which runs via XWayland on Wayland sessions) to ensure compatibility.
-    setenv("SDL_VIDEODRIVER", "x11", 0); 
+    // 1. Platform-specific initialization
+    Platform::initialize();
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) < 0) {
         std::cerr << "SDL Init Error: " << SDL_GetError() << std::endl;
@@ -34,7 +32,6 @@ int main(int argc, char* argv[]) {
     const int winW = Config::getInstance().getInt("width", 128);
     const int winH = Config::getInstance().getInt("height", 128);
 
-    // Use smart pointers for automatic cleanup
     std::unique_ptr<SDL_Window, SDLDeleter> window(SDL_CreateWindow(
         "LitePaws",
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
@@ -47,6 +44,9 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // Apply any additional tweaks
+    Platform::applyWindowTweaks(window.get());
+
     std::unique_ptr<SDL_Renderer, SDLDeleter> renderer(SDL_CreateRenderer(
         window.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
     ));
@@ -58,7 +58,6 @@ int main(int argc, char* argv[]) {
     
     SDL_SetRenderDrawBlendMode(renderer.get(), SDL_BLENDMODE_BLEND);
 
-    // Pet handles its own texture cleanup via RAII inside its class
     Pet pet(window.get(), renderer.get(), texturePath);
 
     bool quit = false;
@@ -77,13 +76,11 @@ int main(int argc, char* argv[]) {
         float dt = static_cast<float>((currentTime - lastTime) / freq);
         lastTime = currentTime;
 
-        // Cap dt to prevent logic jumps during lag
         if (dt > 0.1f) dt = 0.1f;
 
         pet.update(dt);
         pet.render();
 
-        // CPU conservation: Don't spin if there's no work
         SDL_Delay(1); 
     }
 
