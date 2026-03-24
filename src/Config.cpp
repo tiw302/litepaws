@@ -7,6 +7,13 @@ Config& Config::getInstance() {
     return instance;
 }
 
+static std::string trim(const std::string& s) {
+    auto first = s.find_first_not_of(" \t\r\n");
+    if (std::string::npos == first) return "";
+    auto last = s.find_last_not_of(" \t\r\n");
+    return s.substr(first, (last - first + 1));
+}
+
 void Config::load(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -16,27 +23,17 @@ void Config::load(const std::string& filename) {
 
     std::string line;
     while (std::getline(file, line)) {
-        // Simple trim logic
-        line.erase(0, line.find_first_not_of(" \t"));
-        line.erase(line.find_last_not_of(" \t") + 1);
-
+        line = trim(line);
         if (line.empty() || line[0] == '#' || line[0] == ';') continue;
 
         size_t delimiterPos = line.find('=');
         if (delimiterPos != std::string::npos) {
-            std::string key = line.substr(0, delimiterPos);
-            std::string value = line.substr(delimiterPos + 1);
+            std::string key = trim(line.substr(0, delimiterPos));
+            std::string value = trim(line.substr(delimiterPos + 1));
             
-            // Trim key and value
-            key.erase(line.find_last_not_of(" \t") + 1); // Not correct but simple enough for standard 'key=value'
-            // Actually let's do a proper trim on both sides
-            key.erase(0, key.find_first_not_of(" \t"));
-            key.erase(key.find_last_not_of(" \t") + 1);
-            
-            value.erase(0, value.find_first_not_of(" \t"));
-            value.erase(value.find_last_not_of(" \t") + 1);
-
-            settings[key] = value;
+            if (!key.empty()) {
+                settings[key] = value;
+            }
         }
     }
 }
@@ -49,20 +46,20 @@ std::string Config::get(const std::string& key, const std::string& defaultValue)
 }
 
 int Config::getInt(const std::string& key, int defaultValue) {
-    std::string val = get(key);
-    if (val.empty()) return defaultValue;
+    auto it = settings.find(key);
+    if (it == settings.end()) return defaultValue;
     try {
-        return std::stoi(val);
+        return std::stoi(it->second);
     } catch (...) {
         return defaultValue;
     }
 }
 
 float Config::getFloat(const std::string& key, float defaultValue) {
-    std::string val = get(key);
-    if (val.empty()) return defaultValue;
+    auto it = settings.find(key);
+    if (it == settings.end()) return defaultValue;
     try {
-        return std::stof(val);
+        return std::stof(it->second);
     } catch (...) {
         return defaultValue;
     }
