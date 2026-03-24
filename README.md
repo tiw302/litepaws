@@ -68,4 +68,4 @@ Transparency depends on your Desktop Environment's compositor (e.g., Picom, GNOM
 
 ## License
 
-This project is open-source and ready for GitHub.
+This project is licensed under the [MIT License](LICENSE) - see the [LICENSE](LICENSE) file for details.
