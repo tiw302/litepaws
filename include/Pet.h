@@ -4,29 +4,25 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <string>
+#include <vector>
 #include <memory>
+#include <map>
 
 enum class PetState {
     IDLE,
-    WALK_LEFT,
-    WALK_RIGHT,
+    WALK,
     SLEEP,
     DRAGGING
 };
 
-// RAII Texture Deleter
 struct TextureDeleter {
     void operator()(SDL_Texture* t) const { if (t) SDL_DestroyTexture(t); }
 };
 
 class Pet {
 public:
-    Pet(SDL_Window* window, SDL_Renderer* renderer, const std::string& texturePath);
+    Pet(SDL_Window* window, SDL_Renderer* renderer);
     ~Pet() = default;
-
-    // Disallow copying to prevent multiple deletions or invalid texture pointers
-    Pet(const Pet&) = delete;
-    Pet& operator=(const Pet&) = delete;
 
     void update(float dt);
     void render();
@@ -35,26 +31,32 @@ public:
 private:
     SDL_Window* window;
     SDL_Renderer* renderer;
-    std::unique_ptr<SDL_Texture, TextureDeleter> texture;
+
+    // Multiple textures for each state (Animation Sequence)
+    std::map<PetState, std::vector<std::unique_ptr<SDL_Texture, TextureDeleter>>> animations;
     
     float x, y; 
-    float velocityX, velocityY;
+    float velocityX;
     
     int displayIndex;
     PetState state;
     float stateTimer;
     
-    int frame;
+    int currentFrame;
     float frameTimer;
-    int frameCount;
-    int frameWidth;
-    int frameHeight;
+    float frameDuration;
 
     bool isDragging;
     int dragOffsetX, dragOffsetY;
 
+    // Config cache (Toggles)
+    bool cfgCanWalk, cfgCanSleep, cfgCanDrag, cfgCanClick;
+    float cfgWalkSpeed, cfgGravity;
+
     void changeState();
     void updateScreenBounds();
+    void loadAnimations();
+    void loadStateTextures(PetState s, const std::string& folder, int frameCount);
 };
 
 #endif // PET_H
