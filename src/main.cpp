@@ -14,6 +14,10 @@ struct SDLDeleter {
 
 int main(int argc, char* argv[]) {
     (void)argc; (void)argv;
+    
+    // Hint: Don't bypass compositor (helps with transparency on X11)
+    SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+
     // 1. Platform-specific initialization
     Platform::initialize();
 
