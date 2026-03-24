@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <vector>
 
 Pet::Pet(SDL_Window* window, SDL_Renderer* renderer)
     : window(window), renderer(renderer), state(PetState::IDLE), stateTimer(0), 
@@ -34,19 +35,14 @@ Pet::Pet(SDL_Window* window, SDL_Renderer* renderer)
 
 void Pet::loadStateTextures(PetState s, const std::string& folder, int frameCount) {
     if (frameCount <= 0) return;
-    
     for (int i = 1; i <= frameCount; ++i) {
         std::string path = "assets/" + folder + "/" + std::to_string(i) + ".png";
         SDL_Surface* surf = IMG_Load(path.c_str());
         if (surf) {
             animations[s].push_back(std::unique_ptr<SDL_Texture, TextureDeleter>(SDL_CreateTextureFromSurface(renderer, surf)));
             SDL_FreeSurface(surf);
-        } else {
-            // If i.png doesn't exist but we expected it, try to just use the first one if we have it
-            if (i > 1 && !animations[s].empty()) {
-                std::cout << "[Pet] Ending sequence for " << folder << " at frame " << i-1 << std::endl;
-                break;
-            }
+        } else if (i > 1 && !animations[s].empty()) {
+            break;
         }
     }
 }
@@ -58,7 +54,6 @@ void Pet::loadAnimations() {
     loadStateTextures(PetState::SLEEP, "sleep", cfg.getInt("sleep_frames", 1));
     loadStateTextures(PetState::DRAGGING, "drag", cfg.getInt("drag_frames", 1));
 
-    // Fallback
     if (animations[PetState::IDLE].empty()) {
         SDL_Surface* surf = SDL_CreateRGBSurface(0, 64, 64, 32, 0, 0, 0, 0);
         SDL_FillRect(surf, NULL, SDL_MapRGB(surf->format, 255, 100, 100));
@@ -74,7 +69,6 @@ void Pet::updateScreenBounds() {
 
 void Pet::changeState() {
     if (isDragging) return;
-
     int r = rand() % 100;
     if (r < 40) {
         state = PetState::IDLE;
@@ -117,6 +111,7 @@ void Pet::handleEvent(SDL_Event& e) {
         if (isDragging) {
             isDragging = false;
             SDL_CaptureMouse(SDL_FALSE);
+            updateScreenBounds(); // Key: Update which display we are on after drop
             changeState();
         }
     }
@@ -132,22 +127,41 @@ void Pet::update(float dt) {
         stateTimer -= dt;
         if (stateTimer <= 0) changeState();
 
-        x += velocityX * dt;
+        float nextX = x + velocityX * dt;
+        
+        // Multi-monitor aware boundary check
+        SDL_Rect currentBounds;
+        SDL_GetDisplayBounds(displayIndex, &currentBounds);
 
-        SDL_Rect bounds;
-        if (SDL_GetDisplayBounds(displayIndex, &bounds) != 0) {
-            bounds = {0, 0, 1920, 1080}; 
+        // Check if the next position is within ANY display
+        bool onAnyScreen = false;
+        int numDisplays = SDL_GetNumVideoDisplays();
+        for (int i = 0; i < numDisplays; ++i) {
+            SDL_Rect b;
+            SDL_GetDisplayBounds(i, &b);
+            // Check if center of pet is within this display
+            if (nextX + cfgWidth/2 >= b.x && nextX + cfgWidth/2 <= b.x + b.w &&
+                y + cfgHeight/2 >= b.y && y + cfgHeight/2 <= b.y + b.h) {
+                onAnyScreen = true;
+                if (i != displayIndex) {
+                    displayIndex = i; // Switch active display index
+                }
+                break;
+            }
         }
 
-        if (x < bounds.x) {
-            x = static_cast<float>(bounds.x);
-            velocityX = -velocityX;
-        } else if (x + cfgWidth > bounds.x + bounds.w) {
-            x = static_cast<float>(bounds.x + bounds.w - cfgWidth);
+        if (onAnyScreen) {
+            x = nextX;
+        } else {
+            // Hit absolute edge of the virtual desktop, bounce
             velocityX = -velocityX;
         }
 
-        int floorY = bounds.y + bounds.h - cfgHeight;
+        // Apply gravity relative to the floor of the CURRENT display
+        SDL_Rect b;
+        SDL_GetDisplayBounds(displayIndex, &b);
+        int floorY = b.y + b.h - cfgHeight;
+        
         if (y < floorY) y += cfgGravity * dt;
         if (y > floorY) y = static_cast<float>(floorY);
     }
