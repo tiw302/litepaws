@@ -9,7 +9,7 @@ class ConfigEditor(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("LitePaws Pro Config")
-        self.geometry("450x650")
+        self.geometry("480x700")
         
         self.settings = {}
         self.vars = {}
@@ -44,8 +44,11 @@ class ConfigEditor(tk.Tk):
                 f.write(f"walk_speed={self.vars['walk_speed'].get()}\n")
                 f.write(f"gravity={self.vars['gravity'].get()}\n")
                 
+                f.write("\n# Animation Settings\n")
+                f.write(f"frame_duration={self.vars['frame_duration'].get()}\n")
+                
                 f.write("\n# Animation Frame Counts\n")
-                for k in ['idle_frames', 'walk_frames', 'sleep_frames']:
+                for k in ['idle_frames', 'walk_frames', 'sleep_frames', 'drag_frames']:
                     f.write(f"{k}={self.vars[k].get()}\n")
                     
             messagebox.showinfo("Success", "Configuration saved!")
@@ -58,20 +61,18 @@ class ConfigEditor(tk.Tk):
 
         ttk.Label(main_frame, text="LitePaws Configuration", font=("Helvetica", 16, "bold")).pack(pady=10)
 
-        # Helper to add entry
         def add_entry(label, key, default="128"):
             frame = ttk.Frame(main_frame)
-            frame.pack(fill=tk.X, pady=5)
+            frame.pack(fill=tk.X, pady=3)
             ttk.Label(frame, text=label).pack(side=tk.LEFT)
             var = tk.StringVar(value=self.settings.get(key, default))
-            entry = ttk.Entry(frame, textvariable=var, width=10)
+            entry = ttk.Entry(frame, textvariable=var, width=12)
             entry.pack(side=tk.RIGHT)
             self.vars[key] = var
 
-        # Helper to add toggle
-        def add_toggle(label, key, default=True):
+        def add_toggle(label, key):
             frame = ttk.Frame(main_frame)
-            frame.pack(fill=tk.X, pady=5)
+            frame.pack(fill=tk.X, pady=3)
             ttk.Label(frame, text=label).pack(side=tk.LEFT)
             val = int(self.settings.get(key, "1"))
             var = tk.BooleanVar(value=(val == 1))
@@ -80,8 +81,8 @@ class ConfigEditor(tk.Tk):
             self.vars[key] = var
 
         ttk.Label(main_frame, text="--- Window Size ---", font=("Helvetica", 10, "italic")).pack(pady=5)
-        add_entry("Width:", "width")
-        add_entry("Height:", "height")
+        add_entry("Width (px):", "width")
+        add_entry("Height (px):", "height")
 
         ttk.Label(main_frame, text="--- Behaviors ---", font=("Helvetica", 10, "italic")).pack(pady=5)
         add_toggle("Allow Walking:", "can_walk")
@@ -89,18 +90,22 @@ class ConfigEditor(tk.Tk):
         add_toggle("Allow Dragging:", "can_drag")
         add_toggle("Allow Clicking:", "can_click")
 
-        ttk.Label(main_frame, text="--- Movement ---", font=("Helvetica", 10, "italic")).pack(pady=5)
+        ttk.Label(main_frame, text="--- Movement & Physics ---", font=("Helvetica", 10, "italic")).pack(pady=5)
         add_entry("Walk Speed:", "walk_speed", "60.0")
-        add_entry("Gravity:", "gravity", "500.0")
+        add_entry("Gravity Force:", "gravity", "500.0")
 
-        ttk.Label(main_frame, text="--- Animation Frames ---", font=("Helvetica", 10, "italic")).pack(pady=5)
-        add_entry("Idle Frames:", "idle_frames", "1")
-        add_entry("Walk Frames:", "walk_frames", "2")
-        add_entry("Sleep Frames:", "sleep_frames", "2")
+        ttk.Label(main_frame, text="--- Animation Speed ---", font=("Helvetica", 10, "italic")).pack(pady=5)
+        add_entry("Seconds per Frame:", "frame_duration", "0.5")
+
+        ttk.Label(main_frame, text="--- Frame Counts ---", font=("Helvetica", 10, "italic")).pack(pady=5)
+        add_entry("Idle frames (assets/idle/):", "idle_frames", "1")
+        add_entry("Walk frames (assets/walk/):", "walk_frames", "1")
+        add_entry("Sleep frames (assets/sleep/):", "sleep_frames", "1")
+        add_entry("Drag frames (assets/drag/):", "drag_frames", "1")
 
         ttk.Button(main_frame, text="SAVE CONFIGURATION", command=self.save_config).pack(pady=20)
         
-        ttk.Label(main_frame, text="Note: Assets must be in assets/<state>/X.png", font=("Helvetica", 8)).pack()
+        ttk.Label(main_frame, text="Place frames as 1.png, 2.png... in assets/<state>/", font=("Helvetica", 8)).pack()
 
 if __name__ == "__main__":
     app = ConfigEditor()

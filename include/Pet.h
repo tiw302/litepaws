@@ -32,7 +32,7 @@ private:
     SDL_Window* window;
     SDL_Renderer* renderer;
 
-    // Multiple textures for each state (Animation Sequence)
+    // Animation sequences
     std::map<PetState, std::vector<std::unique_ptr<SDL_Texture, TextureDeleter>>> animations;
     
     float x, y; 
@@ -44,14 +44,14 @@ private:
     
     int currentFrame;
     float frameTimer;
-    float frameDuration;
 
     bool isDragging;
     int dragOffsetX, dragOffsetY;
 
-    // Config cache (Toggles)
+    // Config cache
     bool cfgCanWalk, cfgCanSleep, cfgCanDrag, cfgCanClick;
-    float cfgWalkSpeed, cfgGravity;
+    float cfgWalkSpeed, cfgGravity, cfgFrameDuration;
+    int cfgWidth, cfgHeight;
 
     void changeState();
     void updateScreenBounds();

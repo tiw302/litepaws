@@ -6,18 +6,20 @@
 
 Pet::Pet(SDL_Window* window, SDL_Renderer* renderer)
     : window(window), renderer(renderer), state(PetState::IDLE), stateTimer(0), 
-      currentFrame(0), frameTimer(0), frameDuration(0.15f), isDragging(false) 
+      currentFrame(0), frameTimer(0), isDragging(false) 
 {
     srand(static_cast<unsigned int>(time(NULL)));
 
-    // Cache Config Settings
     Config& cfg = Config::getInstance();
     cfgCanWalk = cfg.getInt("can_walk", 1) == 1;
     cfgCanSleep = cfg.getInt("can_sleep", 1) == 1;
     cfgCanDrag = cfg.getInt("can_drag", 1) == 1;
     cfgCanClick = cfg.getInt("can_click", 1) == 1;
     cfgWalkSpeed = cfg.getFloat("walk_speed", 60.0f);
-    cfgGravity = cfg.getFloat("gravity", 200.0f);
+    cfgGravity = cfg.getFloat("gravity", 500.0f);
+    cfgFrameDuration = cfg.getFloat("frame_duration", 0.5f);
+    cfgWidth = cfg.getInt("width", 128);
+    cfgHeight = cfg.getInt("height", 128);
 
     loadAnimations();
 
@@ -40,7 +42,11 @@ void Pet::loadStateTextures(PetState s, const std::string& folder, int frameCoun
             animations[s].push_back(std::unique_ptr<SDL_Texture, TextureDeleter>(SDL_CreateTextureFromSurface(renderer, surf)));
             SDL_FreeSurface(surf);
         } else {
-            std::cerr << "Could not load animation frame: " << path << std::endl;
+            // If i.png doesn't exist but we expected it, try to just use the first one if we have it
+            if (i > 1 && !animations[s].empty()) {
+                std::cout << "[Pet] Ending sequence for " << folder << " at frame " << i-1 << std::endl;
+                break;
+            }
         }
     }
 }
@@ -50,8 +56,9 @@ void Pet::loadAnimations() {
     loadStateTextures(PetState::IDLE, "idle", cfg.getInt("idle_frames", 1));
     loadStateTextures(PetState::WALK, "walk", cfg.getInt("walk_frames", 1));
     loadStateTextures(PetState::SLEEP, "sleep", cfg.getInt("sleep_frames", 1));
+    loadStateTextures(PetState::DRAGGING, "drag", cfg.getInt("drag_frames", 1));
 
-    // Fallback if no images found
+    // Fallback
     if (animations[PetState::IDLE].empty()) {
         SDL_Surface* surf = SDL_CreateRGBSurface(0, 64, 64, 32, 0, 0, 0, 0);
         SDL_FillRect(surf, NULL, SDL_MapRGB(surf->format, 255, 100, 100));
@@ -87,6 +94,7 @@ void Pet::changeState() {
         stateTimer = 2.0f;
     }
     currentFrame = 0;
+    frameTimer = 0;
 }
 
 void Pet::handleEvent(SDL_Event& e) {
@@ -100,11 +108,10 @@ void Pet::handleEvent(SDL_Event& e) {
             isDragging = true;
             SDL_CaptureMouse(SDL_TRUE);
             state = PetState::DRAGGING;
+            currentFrame = 0;
+            frameTimer = 0;
             dragOffsetX = mx - wx;
             dragOffsetY = my - wy;
-        }
-        if (cfgCanClick) {
-            // Placeholder for click interaction logic
         }
     } else if (e.type == SDL_MOUSEBUTTONUP && e.button.button == SDL_BUTTON_LEFT) {
         if (isDragging) {
@@ -132,28 +139,29 @@ void Pet::update(float dt) {
             bounds = {0, 0, 1920, 1080}; 
         }
 
-        // Boundary/Turning
         if (x < bounds.x) {
             x = static_cast<float>(bounds.x);
             velocityX = -velocityX;
-        } else if (x + 128 > bounds.x + bounds.w) { // Assuming 128 as width, should be dynamic
-            x = static_cast<float>(bounds.x + bounds.w - 128);
+        } else if (x + cfgWidth > bounds.x + bounds.w) {
+            x = static_cast<float>(bounds.x + bounds.w - cfgWidth);
             velocityX = -velocityX;
         }
 
-        // Snap to floor
-        int floorY = bounds.y + bounds.h - 128; // Dynamic height
+        int floorY = bounds.y + bounds.h - cfgHeight;
         if (y < floorY) y += cfgGravity * dt;
         if (y > floorY) y = static_cast<float>(floorY);
     }
 
     SDL_SetWindowPosition(window, static_cast<int>(x), static_cast<int>(y));
 
-    // Animation frames
-    auto& currentAnim = animations.count(state) ? animations[state] : animations[PetState::IDLE];
+    // Animation frames logic
+    auto& currentAnim = (animations.count(state) && !animations[state].empty()) 
+                        ? animations[state] 
+                        : animations[PetState::IDLE];
+    
     if (!currentAnim.empty()) {
         frameTimer += dt;
-        if (frameTimer > frameDuration) {
+        if (frameTimer > cfgFrameDuration) {
             frameTimer = 0;
             currentFrame = (currentFrame + 1) % currentAnim.size();
         }
@@ -164,10 +172,13 @@ void Pet::render() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0); 
     SDL_RenderClear(renderer);
 
-    auto& currentAnim = animations.count(state) ? animations[state] : animations[PetState::IDLE];
+    auto& currentAnim = (animations.count(state) && !animations[state].empty()) 
+                        ? animations[state] 
+                        : animations[PetState::IDLE];
+    
     if (!currentAnim.empty()) {
         SDL_RendererFlip flip = (velocityX < 0) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-        SDL_RenderCopyEx(renderer, currentAnim[currentFrame].get(), NULL, NULL, 0, NULL, flip);
+        SDL_RenderCopyEx(renderer, currentAnim[currentFrame % currentAnim.size()].get(), NULL, NULL, 0, NULL, flip);
     }
 
     SDL_RenderPresent(renderer);
