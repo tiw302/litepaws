@@ -1,5 +1,8 @@
 # LitePaws - Lightweight Desktop Pet for Linux
 
+[![Build Status](https://github.com/tiw302/litepaws/actions/workflows/build.yml/badge.svg)](https://github.com/tiw302/litepaws/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 LitePaws is a high-performance, low-resource desktop pet application designed for modern Linux environments (X11 and Wayland). Written in C++17 and utilizing SDL2, it aims for a memory footprint under 10MB while providing smooth animations and multi-monitor support.
 
 ## Features
