@@ -1,4 +1,4 @@
-# LitePaws
+# LitePaws (Work-in-Progress)
 
 [![Build Status](https://github.com/tiw302/litepaws/actions/workflows/build.yml/badge.svg)](https://github.com/tiw302/litepaws/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
