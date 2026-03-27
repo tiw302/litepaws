@@ -6,10 +6,7 @@ def create_placeholder(folder, name, color, text):
     os.makedirs(folder, exist_ok=True)
     img = Image.new('RGBA', (128, 128), color=(0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    # Draw a rounded rectangle or simple box
-    draw.rectangle([10, 10, 118, 118], fill=color, outline="white", width=2)
-    # Note: Text requires a font, so we'll just stick to colors for simplicity 
-    # unless you have a font file. Let's just use different colors.
+    draw.rectangle([0, 0, 127, 127], fill=color)
     img.save(os.path.join(folder, f"{name}.png"))
     print(f"Created: {folder}/{name}.png")
 

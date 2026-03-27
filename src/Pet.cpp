@@ -39,8 +39,19 @@ void Pet::loadStateTextures(PetState s, const std::string& folder, int frameCoun
         std::string path = "assets/" + folder + "/" + std::to_string(i) + ".png";
         SDL_Surface* surf = IMG_Load(path.c_str());
         if (surf) {
-            animations[s].push_back(std::unique_ptr<SDL_Texture, TextureDeleter>(SDL_CreateTextureFromSurface(renderer, surf)));
+            SDL_Surface* converted = SDL_ConvertSurfaceFormat(surf, SDL_PIXELFORMAT_ARGB8888, 0);
             SDL_FreeSurface(surf);
+
+            if (converted) {
+                SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, converted);
+                SDL_FreeSurface(converted);
+
+                if (tex) {
+                    SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+                    animations[s].push_back(
+                        std::unique_ptr<SDL_Texture, TextureDeleter>(tex));
+                }
+            }
         } else if (i > 1 && !animations[s].empty()) {
             break;
         }
@@ -70,6 +81,8 @@ void Pet::updateScreenBounds() {
 void Pet::changeState() {
     if (isDragging) return;
     int r = rand() % 100;
+    PetState oldState = state;
+
     if (r < 40) {
         state = PetState::IDLE;
         velocityX = 0;
@@ -87,6 +100,13 @@ void Pet::changeState() {
         velocityX = 0;
         stateTimer = 2.0f;
     }
+
+    if (oldState != state) {
+        std::string stateName = (state == PetState::IDLE) ? "IDLE" : 
+                                (state == PetState::WALK) ? "WALK" : "SLEEP";
+        std::cout << "[Pet AI] State Changed: " << stateName << " (Timer: " << stateTimer << "s)" << std::endl;
+    }
+
     currentFrame = 0;
     frameTimer = 0;
 }
@@ -178,13 +198,19 @@ void Pet::update(float dt) {
         if (frameTimer > cfgFrameDuration) {
             frameTimer = 0;
             currentFrame = (currentFrame + 1) % currentAnim.size();
+            std::cout << "[Animation] State: " << (state == PetState::IDLE ? "IDLE" : (state == PetState::WALK ? "WALK" : (state == PetState::SLEEP ? "SLEEP" : "DRAG"))) 
+                      << " | Frame: " << currentFrame + 1 << "/" << currentAnim.size() << std::endl;
         }
     }
 }
 
 void Pet::render() {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0); 
+    // ✅ ต้องเซ็ต NONE ก่อน clear — BLEND mode ทำให้ clear ไม่ทำงานถูก
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
+    // ✅ แล้วค่อยคืน BLEND สำหรับ render texture
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     auto& currentAnim = (animations.count(state) && !animations[state].empty()) 
                         ? animations[state] 
@@ -192,8 +218,10 @@ void Pet::render() {
     
     if (!currentAnim.empty()) {
         SDL_RendererFlip flip = (velocityX < 0) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-        SDL_RenderCopyEx(renderer, currentAnim[currentFrame % currentAnim.size()].get(), NULL, NULL, 0, NULL, flip);
+        SDL_RenderCopyEx(renderer, currentAnim[currentFrame % currentAnim.size()].get(), 
+                         NULL, NULL, 0, NULL, flip);
     }
 
     SDL_RenderPresent(renderer);
 }
+
