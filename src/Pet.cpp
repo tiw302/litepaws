@@ -149,23 +149,21 @@ void Pet::update(float dt) {
 
         float nextX = x + velocityX * dt;
         
-        // Multi-monitor aware boundary check
+        // Handle multi-monitor boundaries
         SDL_Rect currentBounds;
         SDL_GetDisplayBounds(displayIndex, &currentBounds);
 
-        // Check if the next position is within ANY display
+        // Check if the next position is within any display viewport
         bool onAnyScreen = false;
         int numDisplays = SDL_GetNumVideoDisplays();
         for (int i = 0; i < numDisplays; ++i) {
             SDL_Rect b;
             SDL_GetDisplayBounds(i, &b);
-            // Check if center of pet is within this display
+            // Center of pet check
             if (nextX + cfgWidth/2 >= b.x && nextX + cfgWidth/2 <= b.x + b.w &&
                 y + cfgHeight/2 >= b.y && y + cfgHeight/2 <= b.y + b.h) {
                 onAnyScreen = true;
-                if (i != displayIndex) {
-                    displayIndex = i; // Switch active display index
-                }
+                if (i != displayIndex) displayIndex = i; // Switch active display
                 break;
             }
         }
@@ -173,11 +171,11 @@ void Pet::update(float dt) {
         if (onAnyScreen) {
             x = nextX;
         } else {
-            // Hit absolute edge of the virtual desktop, bounce
+            // Reached desktop edge, reverse direction
             velocityX = -velocityX;
         }
 
-        // Apply gravity relative to the floor of the CURRENT display
+        // Apply gravity relative to current monitor's "floor"
         SDL_Rect b;
         SDL_GetDisplayBounds(displayIndex, &b);
         int floorY = b.y + b.h - cfgHeight;
@@ -205,11 +203,12 @@ void Pet::update(float dt) {
 }
 
 void Pet::render() {
-    // ✅ ต้องเซ็ต NONE ก่อน clear — BLEND mode ทำให้ clear ไม่ทำงานถูก
+    // Disable blending to ensure clear works correctly (transparency)
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
-    // ✅ แล้วค่อยคืน BLEND สำหรับ render texture
+    
+    // Restore blending for texture rendering
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     auto& currentAnim = (animations.count(state) && !animations[state].empty()) 
