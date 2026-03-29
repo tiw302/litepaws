@@ -19,6 +19,9 @@ struct TextureDeleter {
     void operator()(SDL_Texture* t) const { if (t) SDL_DestroyTexture(t); }
 };
 
+/**
+ * The Pet class manages the pet's state machine, animation, and movement logic.
+ */
 class Pet {
 public:
     Pet(SDL_Window* window, SDL_Renderer* renderer);
@@ -32,23 +35,27 @@ private:
     SDL_Window* window;
     SDL_Renderer* renderer;
 
-    // Animation sequences
+    // Mapping states to animation frame textures
     std::map<PetState, std::vector<std::unique_ptr<SDL_Texture, TextureDeleter>>> animations;
     
+    // Position and movement
     float x, y; 
     float velocityX;
     
+    // State management
     int displayIndex;
     PetState state;
     float stateTimer;
     
+    // Animation timing
     int currentFrame;
     float frameTimer;
 
+    // Interaction state
     bool isDragging;
     int dragOffsetX, dragOffsetY;
 
-    // Config cache
+    // Local configuration cache
     bool cfgCanWalk, cfgCanSleep, cfgCanDrag, cfgCanClick;
     float cfgWalkSpeed, cfgGravity, cfgFrameDuration;
     int cfgWidth, cfgHeight;
