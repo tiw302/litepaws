@@ -4,6 +4,10 @@
 #include <SDL2/SDL.h>
 #include <string>
 
+/**
+ * Platform-specific utilities and window manager tweaks.
+ * Currently focused on X11 desktop environments.
+ */
 class Platform {
 public:
     // Initialize platform-specific environment variables

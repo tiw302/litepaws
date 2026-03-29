@@ -16,7 +16,8 @@ void Platform::initialize() {
         if (XMatchVisualInfo(display, DefaultScreen(display), 32, TrueColor, &vinfo)) {
             char buf[32];
             snprintf(buf, sizeof(buf), "0x%lx", vinfo.visualid);
-            setenv("SDL_VIDEO_X11_VISUALID", buf, 1); // ✅ ใช้ setenv แทน SDL_SetHint
+            // Force SDL to use a 32-bit visual for transparency support
+            setenv("SDL_VIDEO_X11_VISUALID", buf, 1); 
             std::cout << "Visual ID set: " << buf << std::endl;
         }
         XCloseDisplay(display);
@@ -34,7 +35,9 @@ void Platform::applyWindowTweaks(SDL_Window* window) {
        
         XSetWindowBackgroundPixmap(display, xwindow, None);
         XClearWindow(display, xwindow);
-        // 1. Force Sticky (Visible on all workspaces)
+
+        // NetWM atoms for window manager hints
+        // 1. Force Sticky (Visible on all workspaces) and Always on Top
         Atom stateSticky = XInternAtom(display, "_NET_WM_STATE_STICKY", False);
         Atom stateAbove = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
         Atom netWmState = XInternAtom(display, "_NET_WM_STATE", False);
@@ -42,7 +45,7 @@ void Platform::applyWindowTweaks(SDL_Window* window) {
         Atom states[] = { stateSticky, stateAbove };
         XChangeProperty(display, xwindow, netWmState, XA_ATOM, 32, PropModeReplace, (unsigned char*)states, 2);
 
-        // 2. Force Skip Taskbar
+        // 2. Prevent window from appearing in taskbars/pagers
         Atom skipTaskbar = XInternAtom(display, "_NET_WM_STATE_SKIP_TASKBAR", False);
         XChangeProperty(display, xwindow, netWmState, XA_ATOM, 32, PropModeAppend, (unsigned char*)&skipTaskbar, 1);
         
