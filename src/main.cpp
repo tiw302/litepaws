@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
  
     SDL_SetHint(SDL_HINT_X11_FORCE_OVERRIDE_REDIRECT, "1");
     SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
-    // ไม่บังคับ opengl — ให้ SDL เลือก renderer เอง
+    // Don't force OpenGL, let SDL pick the best renderer
  
     Platform::initialize();
  
@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
  
     Platform::applyWindowTweaks(window.get());
  
-    // ใช้ ACCELERATED แต่ไม่บังคับ opengl — SDL เลือก driver ที่ support 32-bit visual เอง
+    // Prefer hardware acceleration, but fall back to software if needed
     std::unique_ptr<SDL_Renderer, SDLDeleter> renderer(SDL_CreateRenderer(
         window.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
     ));
